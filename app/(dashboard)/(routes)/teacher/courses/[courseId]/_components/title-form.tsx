@@ -19,6 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { Pencil } from "lucide-react";
+import { useState } from "react";
 
 const formSchema = z.object({
   title: z.string().min(1, {
@@ -26,44 +28,64 @@ const formSchema = z.object({
   }),
 });
 
-export default function CreatePage() {
+interface TitleFormProps {
+  initialData: {
+    title: string;
+  };
+  courseId: string;
+}
+
+export default function TitleForm({ initialData, courseId }: TitleFormProps) {
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: "",
-    },
+    defaultValues: initialData,
   });
 
   const { isSubmitting, isValid } = form.formState;
-
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      console.log(values);
-
-      const res = await axios.post(`/api/courses`, values);
-      router.push(`/teacher/courses/${res.data.id}`);
-      toast.success("Course Created");
+      console.log(`/api/courses/${courseId}`, values);
+      await axios.patch(`/api/courses/${courseId}`, values);
+      toast.success("Course Updated");
+      router.refresh();
+      setIsEditing(false);
     } catch (error) {
       toast.error("something went wrong");
     }
   };
+
+  const [isEditing, setIsEditing] = useState(false);
+  const toggleEdit = () => setIsEditing((current) => !current);
+
   return (
-    <div className="max-w-5xl mx-auto flex items-center  md:justify-center h-full p-6">
-      <div>
-        <h1 className="text-2xl"> Name your course</h1>
-        <p className="text-sm text-slate-600">
-          what would you like to name your course
-        </p>
+    <div className="mt-6 border bg-slate-100 rounded-md p-4">
+      <div className="font-medium flex justify-between items-center">
+        Course Title
+        <Button variant="ghost" onClick={toggleEdit}>
+          {isEditing && <>Cancel</>}
+
+          {!isEditing && (
+            <>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit Title
+            </>
+          )}
+        </Button>
+      </div>
+      {!isEditing && <p className=" text-sm mt-2">{initialData.title}</p>}
+      {isEditing && (
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4 mt-4"
+          >
             <FormField
               control={form.control}
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className=" font-bold">Course Title</FormLabel>
                   <FormControl>
                     <Input
                       disabled={isSubmitting}
@@ -71,24 +93,18 @@ export default function CreatePage() {
                       {...field}
                     />
                   </FormControl>
-                  <FormDescription>
-                    what will you teach in this course
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <div className="flex items-center gap-x-2">
-              <Link href="/">
-                <Button type="button">Cancel</Button>
-              </Link>
-              <Button type="submit" disabled={!isValid || isSubmitting}>
-                Continue
+              <Button disabled={!isValid || isSubmitting} type="submit">
+                Save
               </Button>
             </div>
           </form>
         </Form>
-      </div>
+      )}
     </div>
   );
 }
