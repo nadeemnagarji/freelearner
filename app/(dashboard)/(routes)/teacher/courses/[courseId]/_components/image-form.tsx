@@ -6,27 +6,15 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import toast from "react-hot-toast";
 import { ImageIcon, Pencil, PlusCircle } from "lucide-react";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
-import { Textarea } from "@/components/ui/textarea";
 import { Course } from "@prisma/client";
 import Image from "next/image";
+import { FileUpload } from "@/components/file-upload";
 
-interface DescriptionFormProps {
+interface ImageFormProps {
   initialData: Course;
   courseId: string;
 }
@@ -37,22 +25,11 @@ const formSchema = z.object({
   }),
 });
 
-export default function ImageForm({
-  initialData,
-  courseId,
-}: DescriptionFormProps) {
+export default function ImageForm({ initialData, courseId }: ImageFormProps) {
   const router = useRouter();
   console.log(initialData);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      imageUrl: initialData?.imageUrl || "",
-    },
-  });
-
-  const { isSubmitting, isValid } = form.formState;
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmitBackend = async (values: z.infer<typeof formSchema>) => {
     try {
       console.log(`/api/courses/${courseId}`, values);
       await axios.patch(`/api/courses/${courseId}`, values);
@@ -103,35 +80,34 @@ export default function ImageForm({
           </div>
         ))}
       {isEditing && (
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 mt-4"
-          >
-            <FormField
-              control={form.control}
-              name="image"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Textarea
-                      disabled={isSubmitting}
-                      placeholder="e.g. 'This course is about ...' "
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex items-center gap-x-2">
-              <Button disabled={!isValid || isSubmitting} type="submit">
-                Save
-              </Button>
-            </div>
-          </form>
-        </Form>
+        <div>
+          <FileUpload
+            endpoint="courseImage"
+            onChange={(url) => {
+              if (url) {
+                onSubmitBackend({ imageUrl: url });
+              }
+            }}
+          />
+          <div className=" text-xs to-muted-foreground mt-4">
+            16:4 aspect ratio recommended
+          </div>
+        </div>
       )}
     </div>
   );
 }
+
+/**
+ * the <FileUpload /> component handles the upload property
+ * i.e. as soon as user clicks on the upload icon and the uploads the image
+ * it will show an icon of upload and when we click on that it will take the image
+ * and show us upload file button
+ * as soon as we click on that button it willl trigger the
+ * onChange()=> function of FileUpload component in which the file gets uploaded
+ * in the uploadthing and give back a url
+ *
+ * and using that url the onSubmitBackend function is triggered which will upload that
+ * url in the database and refresh the page
+ *
+ */
