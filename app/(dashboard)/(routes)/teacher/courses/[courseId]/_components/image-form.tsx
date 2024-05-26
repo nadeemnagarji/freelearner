@@ -94,7 +94,12 @@ export default function ImageForm({
           </div>
         ) : (
           <div className="relative aspect-video mt-2">
-            <Image src={initialData.imageUrl} alt="Upload" />
+            <Image
+              fill
+              className="object-cover rounded-md"
+              src={initialData.imageUrl}
+              alt="Upload"
+            />
           </div>
         ))}
       {isEditing && (
